@@ -1,4 +1,4 @@
-![trademate logo](https://status.trademate.de/images/trademate.png)
+![trademate logo](https://avatars0.githubusercontent.com/u/14824249)
 
 # trademate
 
