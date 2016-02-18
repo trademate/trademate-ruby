@@ -1,19 +1,14 @@
 ![trademate logo](https://status.trademate.de/images/trademate.png)
 
-trademate
-=========
+# trademate
 
-Ruby wrapper for trademate e-commerce API
+Ruby wrapper for the [trademate](https://trademate.de/) e-commerce API
 
-[//]: # [![Build Status](https://travis-ci.org/trademate/trademate-ruby.svg)](https://travis-ci.org/trademate/trademate-ruby) [![Code Climate](https://codeclimate.com/github/trademate/trademate-ruby/badges/gpa.svg)](https://codeclimate.com/github/trademate/trademate-ruby)
-
-Work in progress
-================
+## Work in progress
 
 This gem is under heavy development. Please do not use yet.
 
-Installation
-============
+## Installation
 
 Add this line to your application's Gemfile:
 
@@ -29,8 +24,7 @@ $ bundle
 
 The trademate gem is tested on Ruby 2.0.0, 2.1.x and 2.2.x. It requires ruby version 2.0 and up.
 
-Usage
-=====
+## Usage
 
 Initialize a client instance by providing your API keys:
 
