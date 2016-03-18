@@ -8,7 +8,7 @@ module Trademate
     class << self
       def endpoint(**options)
         assert_valid_keys options, :lookup, :action
-        path = "#{name.split('::').last.downcase}s"
+        path = endpoint_name
         path << "/#{options[:lookup]}" if options.key?(:lookup)
         path << "/#{options[:action]}" if options.key?(:action)
         path << ".json"
@@ -26,13 +26,6 @@ module Trademate
       def attr_readable(*attrs)
         attrs.each do |attr|
           define_method(attr) { read_attribute(attr) }
-        end
-      end
-      
-      def collection(*names)
-        names.each do |name|
-          define_method(name) { read_attribute(name) || [] }
-          define_method("#{name}=") { |value| write_attribute(name, value) }
         end
       end
       
@@ -60,6 +53,17 @@ module Trademate
       
       def timestamped
         # TODO
+      end
+      
+      # private
+      
+      # FIXME! use proper inflection
+      def root
+        name.split('::').last.downcase
+      end
+      
+      def endpoint_name
+        "#{root}s"
       end
       
     end
@@ -94,6 +98,10 @@ module Trademate
       self.class.serialize_attributes(attributes)
     end
     
+    def params_for_serialization
+      extra_params.merge(self.class.root => attributes_for_serialization)
+    end
+    
     def endpoint(**options)
       options[:lookup] = id unless options.has_key?(:lookup)
       self.class.endpoint(**options)
@@ -104,13 +112,19 @@ module Trademate
     #end
         
     def inspect
-      "#<#{self.class} @attributes=#{@attributes.inspect}>"
+      attrs_inspect = @attributes.inspect
+      attrs_inspect = attrs_inspect[0..1000] + ' ... }' if attrs_inspect.size > 1000
+      "#<#{self.class} @attributes=#{attrs_inspect}>"
     end
     
     private
     
     def api
       @api
+    end
+
+    def extra_params
+      @extra_params ||= {}
     end
     
     def read_attribute(attr)

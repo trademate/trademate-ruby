@@ -24,11 +24,10 @@ module Trademate
     end
     
     def update(base)
-      assign base, put(base.endpoint, base.attributes_for_serialization)
+      put(base.endpoint, base.params_for_serialization)
     end
     
-    #[Payment, Transaction, Client].each do |klass|
-    [Item].each do |klass|
+    [Item, Attachment].each do |klass|
       name = klass.name.split('::').last.downcase
       define_method "create_#{name}" do |attrs = {}|
         create klass, attrs
@@ -56,7 +55,8 @@ module Trademate
     end
     
     def create(klass, attributes)
-      build klass, post(klass.endpoint, klass.serialize_attributes!(attributes))
+      base = build(klass, attributes)
+      build klass, post(klass.endpoint, base.params_for_serialization)
     end
 
     def find(klass, id)
@@ -77,19 +77,22 @@ module Trademate
     end
     
     def get(path, params = nil)
-      execute init_request(:get, api_path(path, params))
+      parse(execute(init_request(:get, api_path(path, params))))
     end
     
     def post(path, params = nil)
       request = init_request(:post, api_path(path))
-      request.set_form_data(normalize_params(params)) if params
-      execute request
+      set_body(request, params)
+      #request.set_form_data(normalize_params(params)) if params
+      parse(execute(request))
     end
     
     def put(path, params = nil)
       request = init_request(:put, api_path(path))
-      request.set_form_data(normalize_params(params)) if params
+      set_body(request, params)
+      #request.set_form_data(normalize_params(params)) if params
       execute request
+      true
     end
     
     def delete(path, params = nil)
@@ -118,7 +121,11 @@ module Trademate
       raise APIError if response_code >= 500
       raise NotFoundError if 404 == response_code
       raise APIError, "Server returned status #{response_code}" unless 2 == response_code / 100
-      JSON.parse(response.body)
+      response
+    end
+    
+    def parse(request)
+      JSON.parse(request.body)
     end
     
     def uri_class
@@ -149,6 +156,11 @@ module Trademate
       new_hash
     end
 =end
+    
+    def set_body(request, params)
+      request['Content-Type'] = 'application/json'
+      request.body = params.to_json
+    end
     
     # TODO
     def normalize_params(params, key = nil)
