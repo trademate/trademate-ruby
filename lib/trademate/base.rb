@@ -6,10 +6,11 @@ module Trademate
     self.attributes = []
     
     class << self
-      def api_path(*args)
-        raise ArgumentError, "Wrong number of arguments (#{args.size} for 1)" if args.size > 1
+      def endpoint(**options)
+        assert_valid_keys options, :lookup, :action
         path = "#{name.split('::').last.downcase}s"
-        path << "/#{args.first}" if args.size > 0
+        path << "/#{options[:lookup]}" if options.key?(:lookup)
+        path << "/#{options[:action]}" if options.key?(:action)
         path << ".json"
       end
       
@@ -91,6 +92,11 @@ module Trademate
     
     def attributes_for_serialization
       self.class.serialize_attributes(attributes)
+    end
+    
+    def endpoint(**options)
+      options[:lookup] = id unless options.has_key?(:lookup)
+      self.class.endpoint(**options)
     end
     
     #def persisted?

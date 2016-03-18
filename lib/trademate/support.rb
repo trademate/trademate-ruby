@@ -47,6 +47,14 @@ module Trademate
         end
       end
 
+      private
+      
+      def assert_valid_keys(hash, *valid_keys)
+        valid_keys.flatten!
+        unknown = hash.keys - valid_keys
+        raise ArgumentError.new("Unknown keys: #{unknown.inspect}. Valid keys are: #{valid_keys.map(&:inspect).join(', ')}") if unknown.any?
+      end
+
     end
   
   end

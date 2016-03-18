@@ -10,8 +10,8 @@ module Trademate
       private reader
     end
     
-    def initialize(consumer_key, consumer_secret, access_token, access_token_secret, options = {})
-      @credentials = OoAuth::Credentials.new(consumer_key, consumer_secret, access_token, access_token_secret)
+    def initialize(consumer_key, consumer_secret, token, token_secret, options = {})
+      @credentials = OoAuth::Credentials.new(consumer_key, consumer_secret, token, token_secret)
       @host = options[:host] || API_HOST
       @port = options[:port] || API_PORT
       @version = options[:version] || API_VERSION
@@ -20,11 +20,11 @@ module Trademate
     end
     
     def destroy(base)
-      delete base.class.api_path(base.id)
+      delete base.endpoint
     end
     
     def update(base)
-      assign base, put(base.class.api_path(base.id), base.attributes_for_serialization)
+      assign base, put(base.endpoint, base.attributes_for_serialization)
     end
     
     #[Payment, Transaction, Client].each do |klass|
@@ -39,8 +39,13 @@ module Trademate
       define_method "find_#{name}" do |id|
         find klass, id
       end
-      define_method "find_#{name}_by" do |lookup_key, lookup_value|
-        find klass, lookup(lookup_key, lookup_value)
+      define_method "lookup_#{name}" do |*args|
+        case args.size
+        when 1 then find(klass, lookup(nil, args.first))
+        when 2 then find(klass, lookup(args.first, args.second))
+        else
+          raise ArgumentError, "wrong number of arguments (#{args.size} for 1..2)"
+        end
       end
     end
         
@@ -51,16 +56,15 @@ module Trademate
     end
     
     def create(klass, attributes)
-      build klass, post(klass.api_path, klass.serialize_attributes!(attributes))
+      build klass, post(klass.endpoint, klass.serialize_attributes!(attributes))
     end
 
     def find(klass, id)
-      puts "find #{klass}: #{klass.api_path(id)}"
-      build klass, get(klass.api_path(id)).first
+      build klass, get(klass.endpoint(lookup: id))
     end
     
     def all(klass, options = {})
-      get(klass.api_path, options).map { |attributes| build klass, attributes }
+      get(klass.endpoint, options).map { |attributes| build klass, attributes }
     end
     
     def build(klass, attributes)
@@ -73,23 +77,23 @@ module Trademate
     end
     
     def get(path, params = nil)
-      execute init_request(:get, api_url(path, params))
+      execute init_request(:get, api_path(path, params))
     end
     
     def post(path, params = nil)
-      request = init_request(:post, api_url(path))
+      request = init_request(:post, api_path(path))
       request.set_form_data(normalize_params(params)) if params
       execute request
     end
     
     def put(path, params = nil)
-      request = init_request(:put, api_url(path))
+      request = init_request(:put, api_path(path))
       request.set_form_data(normalize_params(params)) if params
       execute request
     end
     
     def delete(path, params = nil)
-      execute init_request(:delete, api_url(path, params))
+      execute init_request(:delete, api_path(path, params))
     end
     
     def init_request(method, url)
@@ -102,7 +106,7 @@ module Trademate
     def https
       return @https if @https
       @https = Net::HTTP.new(host, port)
-      @https.use_ssl = true unless disable_ssl
+      @https.use_ssl = !disable_ssl
       @https
     end
     
@@ -113,24 +117,21 @@ module Trademate
       raise AuthenticationError if 401 == response_code
       raise APIError if response_code >= 500
       raise NotFoundError if 404 == response_code
-      payload = JSON.parse(response.body)
-      raise APIError, payload['error'] if payload['error']
       raise APIError, "Server returned status #{response_code}" unless 2 == response_code / 100
-      payload['data']
+      JSON.parse(response.body)
     end
     
     def uri_class
       disable_ssl ? URI::HTTP : URI::HTTPS
     end
     
-    def api_url(path, params = nil)
+    def api_path(endpoint, params = nil)
       encoded_params = "?#{URI.encode_www_form(params)}" if params && !params.empty?
-      #"http#{'s' unless disable_ssl}://#{host}/ws/#{version}/#{path}#{encoded_params}"
-      uri_class.build(host: host, port: port, path: "/ws/#{version}/#{path}", query: encoded_params).to_s
+      "/ws/#{version}/#{endpoint}#{encoded_params}"
     end
     
     def log_response(response)
-      puts response.inspect
+      # TODO: logger.info response.inspect
     end
     
 =begin

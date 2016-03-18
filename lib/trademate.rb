@@ -1,3 +1,4 @@
+require 'json'
 require 'oo_auth'
 
 require_relative 'trademate/version'
